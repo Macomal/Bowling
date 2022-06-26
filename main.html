@@ -1,8 +1,343 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <title>Bowling Score Board</title>
+        <Title>Bowling Scoreboard </Title>
+        <link rel="stylesheet" href="styles\buttons.css">
+        
+        <link rel="stylesheet" href="styles\text.css">
     </head>
     <body>
+        <label class="player-pick">How many players:</label>
+        <select class="chosen-value" id="players" name="players">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select> 
+        <button class="join-button" onclick="createGame();">Create Game</button>
+        <div id="Main-Frame"></div>
+        <script src="https://code.jquery.com/jquery-git.js">
+        </script>
+        <script>
+            //*********MODEL***************
+            let player;
+            let numofPlayers;
+            let select1, select2, select3;
+            //Retrieve localStorage
+            const savedPlayers = JSON.parse(localStorage.getItem('player'));
+            
+            //Check if its an array
+            if (Array.isArray(savedPlayers)) {
+                player = savedPlayers;
+                numofPlayers =player.length;
+                player.forEach(function(plyr) {
+                    //Create 10 columns per player                    
+                    tableCreate(10, plyr.id);       
+                });
+
+                ComputeTotals();
+                dispScoreStat();
+            } else {
+                player = [{
+                    title: 'Player 1',
+                    SetFrame: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0,0]],
+                    Totals: [0,0,0,0,0,0,0,0,0,0],
+                    id: '1'
+                }];
+            }
+
+            //Creates a Player
+            function createPlayer(playID){
+                const id = '' + new Date().getTime();
+
+                player.push({
+                    title: 'Player ' + playID,
+                    SetFrame: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0,0]],
+                    Totals: [0,0,0,0,0,0,0,0,0,0],
+                    id: playID
+                    });
+
+                savePlayers();
+            }
+
+            //Update Player
+            function updatePlayer(PlyrID, index, val1, val2, val3) {
+                let elementIndex = player.findIndex((player => player.id == PlyrID));
+                if (elementIndex > -1) {
+                    if (index < 10) {
+                        player[elementIndex].SetFrame[index] = [val1,val2];
+                    } else {
+                        player[elementIndex].SetFrame[index] = [val1,val2,val3];
+                    }                    
+                }   
+                savePlayers();              
+            }
+
+            function savePlayers() {
+                localStorage.setItem('player', JSON.stringify(player));
+
+            }
+
+            //Creating the table
+            function tableCreate(column, PlayerID) {
+                const body = document.getElementById('Main-Frame'),
+                    tbl = document.createElement('table')
+                    
+                tbl.style.width = '1300px';
+                tbl.style.border = '1px solid black';
+                tbl.id = 'score-board_' + PlayerID;
+                
+                const tr = tbl.insertRow();
+                for (let j = 0; j <= column; j++) {
+                    
+                    const td = tr.insertCell();
+                    td.style.width = '300px';
+                    td.style.height = '100px';
+                    td.id = PlayerID + '_' + j;
+                    
+                    if (j == 0) {//Player Name
+                        td.appendChild(document.createTextNode(`Player ` + PlayerID));
+                        td.style.border = '1px solid black';   
+                    } else { //Scoreboard
+                        td.appendChild(document.createTextNode('Frame ' + j + ' Score'));
+                        td.style.border = '1px solid black';    
+                        
+                        createDropDownScore(td, PlayerID + '_1_' + j, PlayerID + '_2_' + j);  
+                        createDropDownScore(td, PlayerID + '_2_' + j);    
+                        //Add additional scoreboard when on Frame 10
+                        if (j == 10) {
+                            createDropDownScore(td, PlayerID + '_3_' + j); 
+                        }
+                    }
+                }
+                body.appendChild(tbl);
+                if (PlayerID == numofPlayers) {
+                    Calc = document.createElement('button');
+                    
+                    Calc.innerText = 'Calculate Score';
+                    Calc.id = 'calc-score';
+                    Calc.className = 'join-button';
+                    Calc.onclick = CalculateScore;
+                    body.appendChild(Calc);
+                }
+            }
+
+
+            //CheckIfValid
+            function CheckScoreType(val1, val2) {
+                val1 = Number(val1);
+                val2 = Number(val2);
+                let sumVal = val1 + val2;
+                
+                if (val1 < 10 && val1 < val2 && sumVal > 10) {
+                    return 'Invalid';
+                }else if (val1 < 10 && val2 < 10 ) {
+                    if (val1 < 10 && sumVal == 10) {
+                        return 'Spare';
+                    } else {
+                        return 'Open Frame';
+                    }
+                } else if (val1 == 10 || val2 == 10) {
+                    return 'Strike';
+                } 
+            }
+
+            //Creating the scoreboard
+            function createDropDownScore(element, PlyrID, PlyrID2) {
+                //Create and append select list
+                var selectList = document.createElement('select');
+                selectList.id = PlyrID;
+
+                element.appendChild(selectList);
+                if (PlyrID.includes('_1_')) {
+                    console.log('pasok');
+                    //selectList.onclick = Mod2ndVal(PlyrID2, selectList.selectedIndex);
+                }   
+
+                //Create and append the scoring options
+                for (var i = 0; i <= 10; i++) {
+                    var option = document.createElement('option');
+                    option.value = i;
+                    option.text = i;
+                    option.id = 'opt';
+                    selectList.appendChild(option);  
+               
+                }
+                
+            }
+
+            //Modify the dropdown max value of 2nd option frame
+            function Mod2ndVal(elementid, maxVal) {
+                if (maxVal < 10) {
+                    let selSecond = document.getElementById(elementid);
+                    
+                    if (selSecond.querySelector('#opt') !== null) {
+                        selSecond.removeChild(selSecond.lastChild);
+                        } 
+                    
+                    //Create and append the scoring options
+                    for (var i = 0; i < (10 - maxVal); i++) {
+                        var option = document.createElement('option');
+                        option.value = i;
+                        option.text = i;
+                        option.id = 'opt';
+                        selSecond.appendChild(option);                    
+                    }
+                    selSecond.appendChild(option);
+                }
+            }
+
+
+            //Clear
+            function clear(){
+                const body = document.getElementById('Main-Frame')
+                while (body.hasChildNodes()) {
+                    body.removeChild(body.firstChild);
+                }
+
+                player = [];
+
+                player = [{
+                    title: 'Player 1',
+                    SetFrame: [[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0,0]],
+                    Totals: [0,0,0,0,0,0,0,0,0,0],
+                    id: '1'
+                }];
+
+                savePlayers();
+            }
+
+            //ComputeTotals
+            function ComputeTotals() {
+                let val = [];
+                let val1, val2, val3;
+                
+                //compute each player
+                player.forEach(function(plyr) {
+                    
+                    for (let i = 1; i < plyr.SetFrame.length; i++) {
+                        val = plyr.SetFrame[i];
+                        val1 = Number(val[0,0]);
+                        val2 = Number(val[0,1]);
+                        
+                        plyr.Totals[i] = 0; 
+                        
+                        if (CheckScoreType(val1, val2) != 'Invalid') {
+                            plyr.Totals[i] = val1 + val2;
+                            
+                            //Checking Frame 2 onwards if need to add to previous Frame
+                            if (i > 1) {
+                                
+                                if (plyr.Totals[i -1] >= 10) {//Either got spare or strike
+                                    plyr.Totals[i -1] = plyr.Totals[i -1] + val1;
+                                }                                
+                            }
+
+                            if (i == 10) {
+                                if (plyr.Totals[i] > 0 && plyr.Totals[i] > 10) {
+                                    val3 = Number(val[0,2]);
+                                    plyr.Totals[i] = plyr.Totals[i] + val3;
+                                }
+                            }
+                        } 
+                    } 
+                    
+                    console.log(plyr.Totals);
+                });
+            }
+
+            //Display Score Status on Frame
+            function dispScoreStat() {
+                let val = [];
+                let val1, val2, val3;
+                
+                
+                //display for each frame on each player
+                player.forEach(function(plyr) {
+                    let runningTotal = 0;    
+                    for (let i = 1; i < plyr.SetFrame.length; i++) {
+                        val = plyr.SetFrame[i];
+                        val1 = Number(val[0,0]);
+                        val2 = Number(val[0,1]);
+                        
+                        runningTotal = runningTotal + plyr.Totals[i]
+                        var ScoreType = CheckScoreType(val1, val2);
+                        ScoreType = ScoreType + ': ' + plyr.Totals[i] + '(' + runningTotal + ')';
+
+                        let fieldID = 'disp-score-' + plyr.id + '_' + i
+                        let field = document.createElement('fieldset');
+                        field.appendChild(document.createTextNode(ScoreType));
+                        field.id = fieldID;      
+
+                        //Displaying the Score status on Frame
+                        currframe = document.getElementById(plyr.id + "_" + i);
+                        //dispScoreStat(currframe, 'disp-score-' + plyr.id + '_' + i, ScoreType);
+                        
+                        if (currframe.querySelector('#' + fieldID) !== null) {
+                            currframe.removeChild(currframe.lastChild);
+                        } 
+                        currframe.appendChild(field);
+                    }
+                });
+            }
+
+            //Calculating the scores
+            function CalculateScore() {
+                player.forEach(function (plyr){//Loop per player
+                    var table = document.getElementById('score-board_' + plyr.id);
+                   
+                    for (var i = 0, row; row = table.rows[i]; i++) { 
+                        //let row = table.rows[i]; 
+                        
+                        for (var j = 0, col; col = row.cells[j]; j++) {//Loop per column
+                            //let col = row.cells[j];
+
+                            //iterate through columns
+                            //columns would be accessed using the "col" variable assigned in the for loop
+                            if (j > 0) {
+                                //console.log('col: ' + table.rows[i].cells[j].innerHTML);
+                                select1 = $("#" + plyr.id + "_1_" + j);
+                                select2 = $("#" + plyr.id + "_2_" + j);
+
+                                //Value
+                                var val1 = select1.children("option:selected").val();
+                                var val2 = select2.children("option:selected").val();
+                                
+                                //Update Frame 1-9
+                                if (j < 10) {
+                                    updatePlayer(plyr.id, j, val1, val2, 0);                            
+                                } else {//Update Player 10
+                                    select3 = $("#" + plyr.id + "_3_" + j);
+                                    var val3 = select3.children("option:selected").val();
+                                    updatePlayer(plyr.id, j, val1, val2, val3);
+                                }
+                            }
+                            
+                        }  
+                    }
+                });
+                //console.log(player);
+                ComputeTotals();
+                dispScoreStat();
+            }
+            
+            //*********CONTROLLER***************
+            function createGame(){
+                clear();
+                numofPlayers = document.getElementById('players').value;
+                
+                //Loop to create players
+                for (let p = 2; p <= numofPlayers; p++){
+                    createPlayer(p);
+                }
+
+                player.forEach(function(plyr) {
+                    //Create 10 columns per player
+                    tableCreate(10, plyr.id)
+                
+                });
+            }
+        </script>
+       
     </body>
 </html>
-    
